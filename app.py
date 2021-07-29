@@ -43,7 +43,7 @@ class Venue(db.Model):
     phone = db.Column(db.String(120), nullable=False)
     image_link = db.Column(db.String(500), nullable=False)
     facebook_link = db.Column(db.String(120), nullable=False)
-    website_link = db.Column(db.String(), nullable=False)
+    website_link = db.Column(db.String(), nullable=True)
     # seeking_talent --> Bool
     seeking_talent = db.Column(db.Boolean, nullable=False)
     # seeking_description
