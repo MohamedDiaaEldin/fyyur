@@ -33,15 +33,6 @@ migrate = Migrate(app=app, db=db)
 #----------------------------------------------------------------------------#
 
 
-class Genre(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
-    artist_id = db.Column(db.Integer, db.ForeignKey(
-        'artists.id'))
-    venue_id = db.Column(db.Integer, db.ForeignKey(
-        'venues.id'))
-
-
 class Venue(db.Model):
     __tablename__ = 'venues'
     id = db.Column(db.Integer, primary_key=True)
@@ -52,6 +43,7 @@ class Venue(db.Model):
     phone = db.Column(db.String(120), nullable=False)
     image_link = db.Column(db.String(500), nullable=False)
     facebook_link = db.Column(db.String(120), nullable=False)
+    website_link = db.Column(db.String(), nullable=False)
     # seeking_talent --> Bool
     seeking_talent = db.Column(db.Boolean, nullable=False)
     # seeking_description
@@ -59,23 +51,10 @@ class Venue(db.Model):
     # image_link
     image_link = db.Column(db.String, nullable=False)
     # geners as relationship to geners table
-    genres = db.relationship('Genre', backref='genre', lazy=True)
+    all_genres = db.relationship('Genre', backref='ve_genres', lazy=True)
     # pastshows as relationship to shows table
-    past_show = db.relationship('Show', backref='show')
+    all_shows = db.relationship('Show', backref='ve_shows', lazy=True)
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
-
-
-class Show(db.Model):
-    __tablename__ = 'shows'
-    id = db.Column(db.Integer, primary_key=True)
-    venue_name = db.Column(db.String, nullable=False)
-    artist_name = db.Column(db.String, nullable=False)
-    artist_image_link = db.Column(db.String, nullable=False)
-    start_time = db.Column(db.String, nullable=False)
-
-    artist_id = db.Column(db.Integer, db.ForeignKey(
-        'Artist', 'artists.id'), nullable=False)
-    venue_id = db.Column(db.Integer, db.ForeignKey('Venue', 'venues.id'))
 
 
 class Artist(db.Model):
@@ -88,13 +67,33 @@ class Artist(db.Model):
     image_link = db.Column(db.String(500), nullable=False)
     facebook_link = db.Column(db.String(120), nullable=False)
     # seeking_vanue --> bool
-    seeking_venue = db.Column(db.Boolean, nullable = False)
+    seeking_venue = db.Column(db.Boolean, nullable=False)
     # seeking_vanue_description
     seeking_venue_decription = db.Column(db.String, nullable=False)
     # past_shows as a relationship with shows table
-    past_shows = db.relationship('Show', 'shows.id')
+    all_shows = db.relationship('Show', backref='ar_shows', lazy=True)
     # genre relation ship with genres table
-    genres = db.relationship('Genre', 'genres.id')
+    all_genres = db.relationship('Genre',  backref='ar_genres', lazy=True)
+
+
+class Show(db.Model):
+    __tablename__ = 'shows'
+    id = db.Column(db.Integer, primary_key=True)
+    venue_name = db.Column(db.String(), nullable=False)
+    artist_name = db.Column(db.String(), nullable=False)
+    artist_image_link = db.Column(db.String(), nullable=False)
+    start_time = db.Column(db.String(), nullable=False)
+    artist_id = db.Column(db.Integer, db.ForeignKey('artists.id'))
+    venue_id = db.Column(db.Integer, db.ForeignKey('venues.id'))
+
+
+class Genre(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    artist_id = db.Column(db.Integer, db.ForeignKey(
+        'artists.id'))
+    venue_id = db.Column(db.Integer, db.ForeignKey(
+        'venues.id'))
 
 # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
@@ -103,6 +102,19 @@ class Artist(db.Model):
 #----------------------------------------------------------------------------#
 # Filters.
 #----------------------------------------------------------------------------#
+##
+
+# >>> artist = Artist(name='yyyy', city='October city', state='Giza', phone='0152152', image_link='image link here' , facebook_link='facebook link here', seeking_venue = True , seeking_venue_decription='no thing')
+# >>> db.session.add(artist)
+# >>> db.session.commit()
+# >>> genre = Genre(name='classiccyyy', artist_id=artist.id) 
+# >>> db.session.add(genre)
+# >>> db.session.commit()
+# >>> Genre.query.filter_by(artist_id=artist.id).all()
+# >>> Genre.query.get(artist.id)
+
+## delete notes --> i should delete a record first from genres and shows if there
+# then delete the artist or venue
 
 
 def format_datetime(value, format='medium'):
@@ -264,7 +276,7 @@ def show_venue(venue_id):
 
 @app.route('/venues/create', methods=['GET'])
 def create_venue_form():
-    form = VenueForm()
+   
     return render_template('forms/new_venue.html', form=form)
 
 
