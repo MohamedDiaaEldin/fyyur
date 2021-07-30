@@ -69,10 +69,11 @@ class Artist(db.Model):
     phone = db.Column(db.String(120), nullable=False)
     image_link = db.Column(db.String(500), nullable=False)
     facebook_link = db.Column(db.String(120), nullable=False)
+    website_link = db.Column(db.String(), nullable=False)
     # seeking_vanue --> bool
     seeking_venue = db.Column(db.Boolean, nullable=False)
     # seeking_vanue_description
-    seeking_venue_decription = db.Column(db.String, nullable=False)
+    seeking_venue_description = db.Column(db.String, nullable=False)
     # past_shows as a relationship with shows table
     all_shows = db.relationship('Show', backref='ar_shows', lazy=True)
     # genre relation ship with genres table
@@ -85,7 +86,7 @@ class Show(db.Model):
     venue_name = db.Column(db.String(), nullable=False)
     artist_name = db.Column(db.String(), nullable=False)
     artist_image_link = db.Column(db.String(), nullable=False)
-    start_time = db.Column(db.String(), nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False)
     artist_id = db.Column(db.Integer, db.ForeignKey('artists.id'))
     venue_id = db.Column(db.Integer, db.ForeignKey('venues.id'))
 
@@ -97,6 +98,7 @@ class Genre(db.Model):
         'artists.id'))
     venue_id = db.Column(db.Integer, db.ForeignKey(
         'venues.id'))
+
     def __repr__(self):
         return f"{self.name}"
 
@@ -157,27 +159,27 @@ def add_to_dic(venue, dic):
 def venues():
     # TODO: replace with real venues data.
     #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
-    static_data = [{
-        "city": "San Francisco",
-        "state": "CA",
-        "venues": [{
-            "id": 1,
-            "name": "The Musical Hop",
-            "num_upcoming_shows": 0,
-        }, {
-            "id": 3,
-            "name": "Park Square Live Music & Coffee",
-            "num_upcoming_shows": 1,
-        }]
-    }, {
-        "city": "New York",
-        "state": "NY",
-        "venues": [{
-            "id": 2,
-            "name": "The Dueling Pianos Bar",
-            "num_upcoming_shows": 0,
-        }]
-    }]
+    # static_data = [{
+    #     "city": "San Francisco",
+    #     "state": "CA",
+    #     "venues": [{
+    #         "id": 1,
+    #         "name": "The Musical Hop",
+    #         "num_upcoming_shows": 0,
+    #     }, {
+    #         "id": 3,
+    #         "name": "Park Square Live Music & Coffee",
+    #         "num_upcoming_shows": 1,
+    #     }]
+    # }, {
+    #     "city": "New York",
+    #     "state": "NY",
+    #     "venues": [{
+    #         "id": 2,
+    #         "name": "The Dueling Pianos Bar",
+    #         "num_upcoming_shows": 0,
+    #     }]
+    # }]
     data = []
     cities = {}
     for venue in Venue.query.all():
@@ -346,6 +348,7 @@ def create_venue_submission():
     # print(request.form['name'])
     is_added_venue = False
     try:
+        datetime.now()
         name = request.form['name']
         city = request.form['city']
         state = request.form['state']
@@ -371,14 +374,14 @@ def create_venue_submission():
         for genre in genres:
             db.session.add(Genre(name=genre, venue_id=venue_id))
             db.session.commit()
-        flash('Venue ' + request.form['name'] + ' was successfully listed!')
+        flash('Venue ' + name + ' was successfully listed!')
     except:
         db.session.rollback()
         if is_added_venue:
             Venue.query.filter_by(id=venue_id).delete()
             db.session.commit()
         print('error happend')
-        flash('Venue ' + request.form['name'] + ' was NOT added :(')
+        flash('Venue ' + name + ' was NOT added :(')
 
     # on successful db insert, flash success
     # TODO: on unsuccessful db insert, flash an error instead.
@@ -582,19 +585,49 @@ def create_artist_form():
 
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
+
     # called upon submitting the new artist listing form
     # TODO: insert form data as a new Venue record in the db, instead
     # TODO: modify data to be the data object returned from db insertion
+    is_added_venue = False     
+    try:
+        name = request.form['name']
+        city = request.form['city']
+        state = request.form['state']
+        phone = request.form['phone']
+        image_link = request.form['image_link']
+        facebook_link = request.form['facebook_link']
+        website_link = request.form['website_link']
+        seeking_venue = False
+        if 'seeking_talent' in request.form:
+            seeking_venue = True
+        seeking_venue_description = request.form['seeking_description']
+        ##
+        genres = request.form.getlist('genres')
 
-    # on successful db insert, flash success
-    flash('Artist ' + request.form['name'] + ' was successfully listed!')
-    # TODO: on unsuccessful db insert, flash an error instead.
-    # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
+        artist = Artist(name=name, city=city, state=state,
+                       phone=phone, image_link=image_link, facebook_link=facebook_link,
+                      website_link=website_link, seeking_venue=seeking_venue,
+                      seeking_venue_description=seeking_venue_description,)
+        db.session.add(artist)
+        db.session.commit()
+        is_added_venue = True
+        artist_id = artist.id
+        for genre in genres:
+            db.session.add(Genre(name=genre, artist_id=artist_id))
+            db.session.commit()
+        flash('Artist ' + name + ' was successfully listed!')
+    except:        
+        db.session.rollback()        
+        if is_added_venue:
+            Venue.query.filter_by(id=artist_id).delete()
+            db.session.commit()
+            print('error happend while adding genres')
+        else:
+            print('error happend while adding artist')
+        flash('Artist ' + name + 'was NOT added :(')
     return render_template('pages/home.html')
 
-
-#  Shows
-#  ----------------------------------------------------------------
 
 @app.route('/shows')
 def shows():
@@ -650,7 +683,9 @@ def create_shows():
 def create_show_submission():
     # called to create new shows in the db, upon submitting new show listing form
     # TODO: insert form data as a new Show record in the db, instead
-
+    # for.get_
+    print(request.form['start_time'])
+    print(datetime.now())
     # on successful db insert, flash success
     flash('Show was successfully listed!')
     # TODO: on unsuccessful db insert, flash an error instead.
