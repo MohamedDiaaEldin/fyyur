@@ -4,11 +4,12 @@
 #----------------------------------------------------------------------------#
 
 import json
+from operator import add
 import dateutil.parser
 import babel
 from flask import Flask, render_template, request, Response, flash, redirect, url_for
 from flask_moment import Moment
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import Pagination, SQLAlchemy
 import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
@@ -41,7 +42,6 @@ class Venue(db.Model):
     state = db.Column(db.String(120), nullable=False)
     address = db.Column(db.String(120), nullable=False)
     phone = db.Column(db.String(120), nullable=False)
-    image_link = db.Column(db.String(500), nullable=False)
     facebook_link = db.Column(db.String(120), nullable=False)
     website_link = db.Column(db.String(), nullable=True)
     # seeking_talent --> Bool
@@ -107,13 +107,13 @@ class Genre(db.Model):
 # >>> artist = Artist(name='yyyy', city='October city', state='Giza', phone='0152152', image_link='image link here' , facebook_link='facebook link here', seeking_venue = True , seeking_venue_decription='no thing')
 # >>> db.session.add(artist)
 # >>> db.session.commit()
-# >>> genre = Genre(name='classiccyyy', artist_id=artist.id) 
+# >>> genre = Genre(name='classiccyyy', artist_id=artist.id)
 # >>> db.session.add(genre)
 # >>> db.session.commit()
 # >>> Genre.query.filter_by(artist_id=artist.id).all()
 # >>> Genre.query.get(artist.id)
 
-## delete notes --> i should delete a record first from genres and shows if there
+# delete notes --> i should delete a record first from genres and shows if there
 # then delete the artist or venue
 
 
@@ -284,9 +284,45 @@ def create_venue_form():
 def create_venue_submission():
     # TODO: insert form data as a new Venue record in the db, instead
     # TODO: modify data to be the data object returned from db insertion
-    print(request.get_json(''))
+    # print(request.get_json())
+    # print(request.form['name'])
+    is_added_venue = False
+    try:
+        name = request.form['name']
+        city = request.form['city']
+        state = request.form['state']
+        address = request.form['address']
+        phone = request.form['phone']
+        image_link = request.form['image_link']
+        genres = request.form.getlist('genres')
+        facebook_link = request.form['facebook_link']
+        website_link = request.form['website_link']
+        seeking_talent = False
+        if 'seeking_talent' in request.form :
+            seeking_talent = True            
+        seeking_description = request.form['seeking_description']
+
+        venue = Venue(name=name, city=city, state=state,
+         address=address, phone=phone, image_link=image_link, facebook_link=facebook_link,
+         website_link=website_link, seeking_talent=seeking_talent,
+         seeking_description=seeking_description,)
+        db.session.add(venue)
+        db.session.commit()
+        is_added_venue= True
+        venue_id = venue.id 
+        for genre in genres :
+            db.session.add(Genre(name=genre, venue_id=venue_id))
+            db.session.commit()
+        flash('Venue ' + request.form['name'] + ' was successfully listed!')
+    except:
+        db.session.rollback()
+        if is_added_venue :
+            Venue.query.filter_by(id=venue_id).delete()
+            db.session.commit()
+        print('error happend')
+        flash('Venue ' + request.form['name'] + ' was NOT added :(')
+
     # on successful db insert, flash success
-    flash('Venue ' + request.form['name'] + ' was successfully listed!')
     # TODO: on unsuccessful db insert, flash an error instead.
     # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
     # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
