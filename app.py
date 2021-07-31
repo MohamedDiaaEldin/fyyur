@@ -39,9 +39,7 @@ def format_datetime(value, format='medium'):
         format = "EE MM, dd, y h:mma"
     return babel.dates.format_datetime(date, format, locale='en')
 
-
 app.jinja_env.filters['datetime'] = format_datetime
-
 
 def add_to_dic(venue, dic):
     city = venue.city + ", " + venue.state
@@ -82,21 +80,31 @@ def venues():
         data.append(current_city)
     return render_template('pages/venues.html', areas=data)
 
-
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
     # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
     # seach for Hop should return "The Musical Hop".
     # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
+    word = request.form.get('search_term', '').strip()
+    venues = db.session.query(Venue).filter(Venue.name.ilike(f'%{word}%')).all()
+    data = []
+    for venue in venues:
+        data.append(fill_json_venue_response(venue))
+    
     response = {
-        "count": 1,
-        "data": [{
-            "id": 2,
-            "name": "The Dueling Pianos Bar",
-            "num_upcoming_shows": 0,
-        }]
+        'count' : len(data) ,
+        'data' : data
     }
+
     return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
+
+def fill_json_venue_response(venue):
+    return {
+            "id": venue.id,
+            "name": venue.name,
+            "num_upcoming_shows": str(len(Show.query.filter(Show.venue_id == venue.id).filter(
+                Show.start_time > datetime.now()).all())),
+    }
 
 
 @app.route('/venues/<int:venue_id>')
