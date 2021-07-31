@@ -1,4 +1,3 @@
-
 from app import db 
 
 class Venue(db.Model):
