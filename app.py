@@ -28,7 +28,7 @@ db = SQLAlchemy(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 migrate = Migrate(app=app, db=db)
 
-# Models 
+# Models
 
 
 class Venue(db.Model):
@@ -99,6 +99,7 @@ class Genre(db.Model):
     def __repr__(self):
         return f"{self.name}"
 
+
 def format_datetime(value, format='medium'):
     date = dateutil.parser.parse(value)
     if format == 'full':
@@ -107,7 +108,9 @@ def format_datetime(value, format='medium'):
         format = "EE MM, dd, y h:mma"
     return babel.dates.format_datetime(date, format, locale='en')
 
+
 app.jinja_env.filters['datetime'] = format_datetime
+
 
 def add_to_dic(venue, dic):
     city = venue.city + ", " + venue.state
@@ -148,30 +151,33 @@ def venues():
         data.append(current_city)
     return render_template('pages/venues.html', areas=data)
 
+
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
     # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
     # seach for Hop should return "The Musical Hop".
     # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
     word = request.form.get('search_term', '').strip()
-    venues = db.session.query(Venue).filter(Venue.name.ilike(f'%{word}%')).all()
+    venues = db.session.query(Venue).filter(
+        Venue.name.ilike(f'%{word}%')).all()
     data = []
     for venue in venues:
         data.append(fill_json_venue_response(venue))
-    
+
     response = {
-        'count' : len(data) ,
-        'data' : data
+        'count': len(data),
+        'data': data
     }
 
     return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
 
+
 def fill_json_venue_response(venue):
     return {
-            "id": venue.id,
-            "name": venue.name,
-            "num_upcoming_shows": str(len(Show.query.filter(Show.venue_id == venue.id).filter(
-                Show.start_time > datetime.now()).all())),
+        "id": venue.id,
+        "name": venue.name,
+        "num_upcoming_shows": str(len(Show.query.filter(Show.venue_id == venue.id).filter(
+            Show.start_time > datetime.now()).all())),
     }
 
 
@@ -192,11 +198,13 @@ def show_venue(venue_id):
         "seeking_description": venue.seeking_description,
         "image_link": venue.image_link,
     }
-    past_shows = Show.query.filter(Show.venue_id == venue_id).filter(
-        Show.start_time < datetime.now()).all()
+    # past shows 
+    past_shows = db.session.query(Show).join(Venue).filter(
+        Show.venue_id == venue_id).filter(Show.start_time < datetime.now()).all()
     json_past_shows = get_json_venue_shows(past_shows)
-    up_shows = Show.query.filter(Show.venue_id == venue_id).filter(
-        Show.start_time > datetime.now()).all()
+    # upcomming shows
+    up_shows = db.session.query(Show).join(Venue).filter(
+        Show.venue_id == venue_id).filter(Show.start_time > datetime.now()).all()
     json_up_shows = get_json_venue_shows(up_shows)
     data['past_shows'] = json_past_shows
     data['past_shows_count'] = str(len(json_past_shows))
@@ -204,16 +212,19 @@ def show_venue(venue_id):
     data['upcoming_shows_count'] = str(len(json_up_shows))
 
     return render_template('pages/show_venue.html', venue=data)
+
+
 def get_json_venue_shows(shows):
     json_shows = []
     for show in shows:
-       json_shows.append({
+        json_shows.append({
             "artist_id": show.artist_id,
             "artist_name": show.artist_name,
             "artist_image_link": show.artist_image_link,
             "start_time": str(show.start_time)
-       }) 
+        })
     return json_shows
+
 
 @app.route('/venues/create', methods=['GET'])
 def create_venue_form():
@@ -287,25 +298,28 @@ def artists():
 @app.route('/artists/search', methods=['POST'])
 def search_artists():
     word = request.form.get('search_term', '').strip()
-    artists = db.session.query(Artist).filter(Artist.name.ilike(f'%{word}%')).all()
+    artists = db.session.query(Artist).filter(
+        Artist.name.ilike(f'%{word}%')).all()
     data = []
     for venue in artists:
         data.append(fill_json_artist_response(venue))
-    
+
     response = {
-        'count' : len(data) ,
-        'data' : data
+        'count': len(data),
+        'data': data
     }
 
     return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
 
+
 def fill_json_artist_response(artist):
-        return {
-            "id": artist.id,
-            "name": artist.name,
-            "num_upcoming_shows": str(len(Show.query.filter(Show.artist_id == artist.id).filter(
-                Show.start_time > datetime.now()).all())),
+    return {
+        "id": artist.id,
+        "name": artist.name,
+        "num_upcoming_shows": str(len(Show.query.filter(Show.artist_id == artist.id).filter(
+            Show.start_time > datetime.now()).all())),
     }
+
 
 @app.route('/artists/<int:artist_id>')
 def show_artist(artist_id):
@@ -349,7 +363,7 @@ def get_json_artist_shows(shows):
             "venue_image_link": Venue.query.get(show.venue_id).image_link,
             "start_time": str(show.start_time)
         })
-    return json_shows 
+    return json_shows
 
 
 @app.route('/artists/<int:artist_id>/edit', methods=['GET'])
