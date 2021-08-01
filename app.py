@@ -28,7 +28,6 @@ db = SQLAlchemy(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 migrate = Migrate(app=app, db=db)
 
-# Models
 
 
 class Venue(db.Model):
@@ -98,6 +97,7 @@ class Genre(db.Model):
 
     def __repr__(self):
         return f"{self.name}"
+
 
 
 def format_datetime(value, format='medium'):
