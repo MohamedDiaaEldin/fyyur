@@ -12,9 +12,11 @@ import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
 from sqlalchemy.orm import backref, lazyload
+from wtforms import validators
 from forms import *
 from config import SQLALCHEMY_DATABASE_URI
 from flask_migrate import Migrate
+import validators
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
@@ -98,7 +100,8 @@ class Genre(db.Model):
     def __repr__(self):
         return f"{self.name}"
 
-
+def is_valid_phone_urls(phone, urls):
+    return  validators.is_valid_phone(phone) and validators.is_valid_urls(urls)
 
 def format_datetime(value, format='medium'):
     date = dateutil.parser.parse(value)
@@ -236,16 +239,21 @@ def create_venue_form():
 def create_venue_submission():
     is_added_venue = False
     try:
+        phone  = request.form['phone']
+        facebook_link = request.form['facebook_link']
+        image_link = request.form['image_link']
+        website_link = request.form['website_link']
+        
+        if not (is_valid_phone_urls(phone=phone ,  urls=(facebook_link, image_link, website_link))):
+            flash('wrong data format')
+            return render_template('pages/home.html')
+         
         datetime.now()
         name = request.form['name']
         city = request.form['city']
         state = request.form['state']
         address = request.form['address']
-        phone = request.form['phone']
-        image_link = request.form['image_link']
         genres = request.form.getlist('genres')
-        facebook_link = request.form['facebook_link']
-        website_link = request.form['website_link']
         seeking_talent = False
         if 'seeking_talent' in request.form:
             seeking_talent = True
@@ -388,14 +396,23 @@ def edit_artist(artist_id):
 @app.route('/artists/<int:artist_id>/edit', methods=['POST'])
 def edit_artist_submission(artist_id):
     try:
+        phone  = request.form['phone']
+        facebook_link = request.form['facebook_link']
+        image_link = request.form['image_link']
+        website_link = request.form['website_link']
+        
+        if not (is_valid_phone_urls(phone=phone ,  urls=(facebook_link, image_link, website_link))):
+            flash('wrong data format')
+            return redirect(url_for('show_artist', artist_id=artist_id))
+         
         artist = Artist.query.get(artist_id)
         artist.name = request.form['name']
         artist.city = request.form['city']
         artist.state = request.form['state']
-        artist.phone = request.form['phone']
-        artist.image_link = request.form['image_link']
-        artist.facebook_link = request.form['facebook_link']
-        artist.website_link = request.form['website_link']
+        artist.phone = phone
+        artist.image_link = image_link
+        artist.facebook_link =facebook_link
+        artist.website_link = website_link
         artist.seeking_venue = True if 'seeking_venue' in request.form else False
         artist.seeking_description = request.form['seeking_description']
         # update genres
@@ -437,17 +454,26 @@ def edit_venue(venue_id):
 @app.route('/venues/<int:venue_id>/edit', methods=['POST'])
 def edit_venue_submission(venue_id):
     try:
+        phone  = request.form['phone']
+        facebook_link = request.form['facebook_link']
+        image_link = request.form['image_link']
+        website_link = request.form['website_link']
+        if not (is_valid_phone_urls(phone=phone ,  urls=(facebook_link, image_link, website_link))):
+            flash('wrong data format')
+            return redirect(url_for('show_venue', venue_id=venue_id))
+
+
         venue = Venue.query.get(venue_id)
         venue.name = request.form['name']
         venue.city = request.form['city']
         venue.state = request.form['state']
         venue.address = request.form['address']
-        venue.phone = request.form['phone']
-        venue.facebook_link = request.form['facebook_link']
-        venue.website_link = request.form['website_link']
+        venue.phone = phone
+        venue.facebook_link = facebook_link
+        venue.website_link = website_link
         venue.seeking_talent = True if 'seeking_talent' in request.form else False
         venue.seeking_description = request.form['seeking_description']
-        venue.image_link = request.form['image_link']
+        venue.image_link = image_link
         # updating genres
         Genre.query.filter_by(venue_id=venue_id).delete()
 
@@ -476,13 +502,17 @@ def create_artist_form():
 def create_artist_submission():
     is_added_venue = False
     try:
+        phone  = request.form['phone']
+        facebook_link = request.form['facebook_link']
+        image_link = request.form['image_link']
+        website_link = request.form['website_link']
+        if not (is_valid_phone_urls(phone=phone ,  urls=(facebook_link, image_link, website_link))):
+            flash('wrong data format')
+            return render_template('pages/home.html')
+
         name = request.form['name']
         city = request.form['city']
         state = request.form['state']
-        phone = request.form['phone']
-        image_link = request.form['image_link']
-        facebook_link = request.form['facebook_link']
-        website_link = request.form['website_link']
         seeking_venue = False
         if 'seeking_talent' in request.form:
             seeking_venue = True
